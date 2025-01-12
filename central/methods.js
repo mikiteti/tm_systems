@@ -6,7 +6,8 @@ const methods = {
         const { identifier, id_type, password } = body;
 
         boring.authenticate_user(identifier, id_type, password, res, (user) => {
-            res.json({success: "User authenticated"});
+            user.success = "User authenticated";
+            res.json(user);
         });
     },
 
