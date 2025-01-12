@@ -6,6 +6,19 @@ const apis = {
         return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(json) }).then(res => res.json());
     },
 
+    authenticate_user (identifier, id_type, password) {
+        const body = {
+            api_name: "authenticate_user",
+            body: {
+                identifier: identifier,
+                id_type: id_type,
+                password: password
+            }
+        }
+
+        this.request(body);
+    },
+
     create_user (name, username, phone, password) {
         const body = {
             api_name: "create_user",

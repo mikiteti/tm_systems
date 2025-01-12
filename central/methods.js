@@ -2,6 +2,14 @@ const global = require("./global");
 const boring = require("./boring");
 
 const methods = {
+    authenticate_user(body, res) {
+        const { identifier, id_type, password } = body;
+
+        boring.authenticate_user(identifier, id_type, password, res, (user) => {
+            res.json({success: "User authenticated"});
+        });
+    },
+
     create_user(body, res) { // insert new row to the users table with the data provided by the parameters and return the row
         const { name, username, phone, password } = body;
         
