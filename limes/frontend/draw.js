@@ -56,7 +56,6 @@ class Stroke {
             //this.element.setAttributeNS(null, "fill", "none");
             this.d = boring.get_first_arc(this);
             const last_arc = boring.get_last_arc(this);
-            console.log(last_arc[0] + this.d + last_arc[1]);
             this.element.setAttributeNS(null, "d", last_arc[0] + this.d + last_arc[1]);
             return;
         }
@@ -98,13 +97,6 @@ class Stroke {
             this.d = connect(0) + this.d;
             this.d += connect(1);
         }
-
-        //const relative_pos = [this.nodes.at(-3)[0] - pos[0], this.nodes.at(-3)[1] - pos[1]];
-        //if (this.nodes.length > 3) { // id there are enough nodes, continue a Catmull-Rom spline
-        //    this.d += ` S ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`;
-        //} else if (this.nodes.lengh == 3) { // if there are enough nodes, initialize a Catmull-Rom spline
-        //    this.d = this.d.split("h")[0] + ` C ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`
-        //}
 
         const last_arc = boring.get_last_arc(this);
         this.element.setAttributeNS(null, "d", last_arc[0] + this.d + last_arc[1]);
@@ -204,15 +196,14 @@ const pointer = {
     up(e) {
         up.initialize_globals(e);
 
-        if (pointer.active) {
-            switch (current.tool.type) {
-                case "monoline":
-                    boring.check_page_height();
-                    boring.fill_grid();
-                    break;
-                case "eraser":
-                    break;
-            }
+        switch (current.tool.type) {
+            case "monoline":
+                up.end_stroke();
+                boring.check_page_height();
+                boring.fill_grid();
+                break;
+            case "eraser":
+                break;
         }
     },
 
@@ -259,4 +250,21 @@ const up = {
         delete pointer.pointers[e.pointerId];
     },
 
+    end_stroke() {
+        console.log("ending stroke");
+        if (current.stroke.nodes.length > 1) {
+            let y = Math.min(current.stroke.nodes.length-1, current.stroke.tool.smoothness),
+                x = current.iterations[y].length-1;
+                
+            while (y > 0) {
+                y--;
+                x++;
+
+                let new_coord = current.iterations[y][x];
+                current.stroke.nodes.push(JSON.parse(JSON.stringify(new_coord)));
+                boring.check_min_max_and_grid(current.stroke);
+                current.stroke.draw_last_node();
+            }
+        }
+    }
 }

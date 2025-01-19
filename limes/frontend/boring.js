@@ -96,7 +96,6 @@ const boring = {
     object_erase () {
         const pos = pointer.active.pos;
         const close_strokes = boring.get_grid_cell_at(pos);
-        console.log("possibly deleted strokes: ", close_strokes);
 
         for (const stroke of close_strokes) {
             if (boring.is_point_in_stroke(stroke, pos)) stroke.delete();
