@@ -121,17 +121,17 @@ const pointer = {
     pointers: {},
 
     down(e) {
-        if (!pointer.active) return;
-
         down.initialize_globals(e);
 
-        switch (current.tool.type) {
-            case "monoline": 
-                down.create_stroke(e);
-                break;
-            case "eraser":
-                boring.object_erase();
-                break;
+        if (pointer.active) {
+            switch (current.tool.type) {
+                case "monoline": 
+                    down.create_stroke(e);
+                    break;
+                case "eraser":
+                    boring.object_erase();
+                    break;
+            }
         }
     },
 
@@ -140,26 +140,30 @@ const pointer = {
 
         move.initialize_globals(e);
 
-        switch (current.tool.type) {
-            case "monoline": 
-                move.continue_stroke();
-                break;
-            case "eraser":
-                boring.object_erase();
-                break;
+        if (pointer.active) {
+            switch (current.tool.type) {
+                case "monoline": 
+                    move.continue_stroke();
+                    break;
+                case "eraser":
+                    boring.object_erase();
+                    break;
+            }
         }
     },
 
     up(e) {
         up.initialize_globals(e);
 
-        switch (current.tool.type) {
-            case "monoline":
-                boring.check_page_height();
-                boring.fill_grid();
-                break;
-            case "eraser":
-                break;
+        if (pointer.active) {
+            switch (current.tool.type) {
+                case "monoline":
+                    boring.check_page_height();
+                    boring.fill_grid();
+                    break;
+                case "eraser":
+                    break;
+            }
         }
     },
 
