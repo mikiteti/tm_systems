@@ -17,7 +17,14 @@ const toolbar = {
         {
             type: "selector",
         },
-    ]
+        {
+            type: "pen",
+            rad: 5,
+            color: "cornflowerblue",
+            smoothness: 3,
+            speed_sensitivity: 1.01,
+        },
+    ],
 };
 const current  = {
     tool: toolbar.tools.find(e => e.color),
@@ -28,18 +35,23 @@ const current  = {
 
 
 class Stroke {
+    get_radius (n) {
+        let rad = this.tool.rad;
+        if (this.tool.speed_sensitivity && n >= 1 && this.nodes.length >= n+1) rad *= this.tool.speed_sensitivity ** boring.dist(this.nodes[n], this.nodes[n-1]);
+
+        return rad;
+    }
+
     create_element () {
         if (this.element) return -1;
 
         const e = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         this.element = e;
 
-        if (this.tool.type == "monoline") {
-            e.setAttributeNS(null, "stroke", this.tool.color);
-            e.setAttributeNS(null, "stroke-width", this.tool.rad);
-            e.setAttributeNS(null, "fill", this.tool.color);
-            e.setAttributeNS(null, "stroke-linecap", "round");
-        }
+        e.setAttributeNS(null, "stroke", this.tool.color);
+        e.setAttributeNS(null, "stroke-width", 2*this.tool.rad);
+        e.setAttributeNS(null, "fill", this.tool.color);
+        e.setAttributeNS(null, "stroke-linecap", "round");
 
         this.d = `M ${this.nodes[0][0]}, ${this.nodes[0][1]} h 0`;
         e.setAttributeNS(null, "d", this.d);
@@ -53,8 +65,6 @@ class Stroke {
         // drawing straight line between two first points if there is no third
         if (this.nodes.length == 2) {
             this.element.setAttributeNS(null, "stroke", "none");
-            //this.element.setAttributeNS(null, "stroke-width", "1");
-            //this.element.setAttributeNS(null, "fill", "none");
             this.d = boring.get_first_arc(this);
             const last_arc = boring.get_last_arc(this);
             this.element.setAttributeNS(null, "d", last_arc[0] + this.d + last_arc[1]);
@@ -68,7 +78,7 @@ class Stroke {
             const len = Math.hypot(...pn); // getting length of pn
             pn[0] /= len; // normalizing pn
             pn[1] /= len; // also normalizing pn
-            const rad = this.tool.rad;
+            const rad = this.get_radius(this.nodes.length-2);
             const dx = rad * pn[0];
             const dy = rad * pn[1];
 
@@ -168,6 +178,7 @@ const pointer = {
         if (pointer.active) {
             switch (current.tool.type) {
                 case "monoline": 
+                case "pen":
                     down.create_stroke(e);
                     break;
                 case "eraser":
@@ -185,6 +196,7 @@ const pointer = {
         if (pointer.active) {
             switch (current.tool.type) {
                 case "monoline": 
+                case "pen":
                     move.continue_stroke();
                     break;
                 case "eraser":
@@ -199,6 +211,7 @@ const pointer = {
 
         switch (current.tool.type) {
             case "monoline":
+            case "pen":
                 up.end_stroke();
                 boring.check_page_height();
                 boring.fill_grid();
@@ -252,7 +265,6 @@ const up = {
     },
 
     end_stroke() {
-        console.log("ending stroke");
         if (current.stroke.nodes.length > 1) {
             let y = Math.min(current.stroke.nodes.length-1, current.stroke.tool.smoothness),
                 x = current.iterations[y].length-1;

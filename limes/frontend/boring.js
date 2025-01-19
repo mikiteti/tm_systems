@@ -37,6 +37,10 @@ const boring = {
     },
 
     is_point_in_stroke (stroke, point) {
+        if (stroke.wraps.length < 4) {
+            return boring.dist(point, stroke.nodes[0]) < stroke.tool.rad;
+        }
+
         const check_segment = (p1, p2) => {
             if (point[1] > Math.min(p1[1], p2[1])
                 && point[1] <= Math.max(p1[1], p2[1])
@@ -59,11 +63,13 @@ const boring = {
     check_min_max_and_grid (stroke) { // adjusts the min, max and grid_cells properties of the given stroke based on its last node
         switch (stroke.tool.type) {
             case "monoline":
+            case "pen":
                 const node = stroke.nodes.at(-1);
-                stroke.min.x = Math.min(stroke.min.x, node[0] - stroke.tool.rad);
-                stroke.min.y = Math.min(stroke.min.y, node[1] - stroke.tool.rad);
-                stroke.max.x = Math.max(stroke.max.x, node[0] + stroke.tool.rad);
-                stroke.max.y = Math.max(stroke.max.y, node[1] + stroke.tool.rad);
+                const rad = stroke.get_radius(stroke.nodes.length-2);
+                stroke.min.x = Math.min(stroke.min.x, node[0] - rad);
+                stroke.min.y = Math.min(stroke.min.y, node[1] - rad);
+                stroke.max.x = Math.max(stroke.max.x, node[0] + rad);
+                stroke.max.y = Math.max(stroke.max.y, node[1] + rad);
 
                 const grid_cell = boring.get_grid_cell_at(node);
                 if (!stroke.grid_cells.includes(grid_cell)) {

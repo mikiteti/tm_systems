@@ -18,6 +18,9 @@ const setup = () => {
             case "KeyE":
                 boring.select_tool(toolbar.tools.find(e => e.type == "eraser") || { type: "eraser", rad: 0 });
                 break;
+            case "KeyP":
+                boring.select_tool(toolbar.tools.find(e => e.type == "pen") || { type: "pen", rad: 10, color: "white", smoothness: 3, speed_sensitivity: 5, });
+                break;
             case "KeyM":
                 boring.select_tool(toolbar.tools.find(e => e.type == "monoline") || { type: "monoline", rad: 10, color: "white", smoothness: 3 });
                 break;
