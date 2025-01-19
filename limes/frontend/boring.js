@@ -101,5 +101,29 @@ const boring = {
         for (const stroke of close_strokes) {
             if (boring.is_point_in_stroke(stroke, pos)) stroke.delete();
         }
-    }
+    },
+
+    get_first_arc (stroke) {
+        const rad = stroke.tool.rad;
+        const p1 = stroke.nodes[0], p2 = stroke.nodes[1];
+        const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+        const dx = rad * Math.cos(angle);
+        const dy = rad * Math.sin(angle);
+
+        let d = ` A ${rad}, ${rad}, 0, 0, 1, ${p1[0]+dy}, ${p1[1]-dx}`;
+        return ` L ${p1[0] - dy}, ${p1[1] + dx}` + d;
+    },
+
+    get_last_arc (stroke) {
+        const rad = stroke.tool.rad;
+        const p1 = stroke.nodes.at(-2), p2 = stroke.nodes.at(-1);
+        const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+        const dx = rad * Math.cos(angle);
+        const dy = rad * Math.sin(angle);
+
+        let d1 = ` M ${p2[0] - dy}, ${p2[1] + dx}`;
+        let d2 = ` L ${p2[0] + dy}, ${p2[1] - dx} A${rad}, ${rad}, 0, 0, 1, ${p2[0] - dy}, ${p2[1] + dx} Z`;
+
+        return [d1, d2];
+    },
 }

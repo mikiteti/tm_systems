@@ -3,3 +3,7 @@ svg {
     width: 100vw;
     min-height: 100vh;
 }
+
+svg * {
+    pointer-events: none;
+}

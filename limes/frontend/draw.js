@@ -1,23 +1,11 @@
 const constant = {
     grid_columns: 10, // maximal stroke width: 125
 };
-const current  = {
-    tool: {
-        type: "monoline",
-        rad: 10,
-        color: "white",
-        smoothness: 3,
-    },
-    stroke_count: 0,
-    iterations: [],
-    page_height: 1000,
-}, strokes = [], grid = [];
-
 const toolbar = {
     tools: [
         {
             type: "monoline",
-            rad: 10,
+            rad: 5,
             color: "white",
             smoothness: 3,
         },
@@ -29,7 +17,14 @@ const toolbar = {
             type: "selector",
         },
     ]
-}
+};
+const current  = {
+    tool: toolbar.tools.find(e => e.color),
+    stroke_count: 0,
+    iterations: [],
+    page_height: 1000,
+}, strokes = [], grid = [];
+
 
 class Stroke {
     create_element () {
@@ -41,7 +36,7 @@ class Stroke {
         if (this.tool.type == "monoline") {
             e.setAttributeNS(null, "stroke", this.tool.color);
             e.setAttributeNS(null, "stroke-width", this.tool.rad);
-            e.setAttributeNS(null, "fill", "none");
+            e.setAttributeNS(null, "fill", this.tool.color);
             e.setAttributeNS(null, "stroke-linecap", "round");
         }
 
@@ -49,6 +44,70 @@ class Stroke {
         e.setAttributeNS(null, "d", this.d);
 
         element.canvas.appendChild(e);
+    }
+
+    draw_last_node() {
+        const pos = this.nodes.at(-1);
+
+        // drawing straight line between two first points if there is no third
+        if (this.nodes.length == 2) {
+            this.element.setAttributeNS(null, "stroke", "none");
+            //this.element.setAttributeNS(null, "stroke-width", "1");
+            //this.element.setAttributeNS(null, "fill", "none");
+            this.d = boring.get_first_arc(this);
+            const last_arc = boring.get_last_arc(this);
+            console.log(last_arc[0] + this.d + last_arc[1]);
+            this.element.setAttributeNS(null, "d", last_arc[0] + this.d + last_arc[1]);
+            return;
+        }
+
+        // adding last possible wraps
+        (() => {
+            const p = this.nodes.at(-3), c = this.nodes.at(-2), n = this.nodes.at(-1); // previous, current, next...
+            const pn = [n[0] - p[0], n[1] - p[1]]; // vector from p to n...
+            const len = Math.hypot(...pn); // getting length of pn
+            pn[0] /= len; // normalizing pn
+            pn[1] /= len; // also normalizing pn
+            const rad = this.tool.rad;
+            const dx = rad * pn[0];
+            const dy = rad * pn[1];
+
+            this.wraps.push([
+                [c[0] - dy, c[1] + dx],
+                [c[0] + dy, c[1] - dx]
+            ]);
+
+            // perpendicular helper lines -- just for testing
+            // element.canvas.innerHTML += `<line x1="${this.wraps.at(-1)[0][0]}" y1="${this.wraps.at(-1)[0][1]}" x2="${this.wraps.at(-1)[1][0]}" y2="${this.wraps.at(-1)[1][1]}" stroke="red"/>`;
+            // element.canvas.innerHTML += `
+            // <circle cx="${this.wraps.at(-1)[0][0]}" cy="${this.wraps.at(-1)[0][1]}" r="1" fill="green">
+            // `
+        })();
+
+        // connecting last possible wraps
+        const connect = (side) => {
+            const [p, c, n] = side ? [this.wraps.at(-3)[1], this.wraps.at(-2)[1], this.wraps.at(-1)[1]] : [this.wraps.at(-1)[0], this.wraps.at(-2)[0], this.wraps.at(-3)[0]];
+            const pn = [n[0] - p[0], n[1] - p[1]];
+            if (this.wraps.length == 3) { // if there are enough wraps, begin a spline
+                return ` C ${c[0] - pn[0] / 6}, ${c[1] - pn[1] / 6} ${c[0] - pn[0] / 6}, ${c[1] - pn[1] / 6} ${c[0]}, ${c[1]}`;
+            } else { // if there are enough wraps, continue the spline
+                return ` S ${c[0] - pn[0] / 6}, ${c[1] - pn[1] / 6} ${c[0]}, ${c[1]}`;
+            }
+        }
+        if (this.wraps.length >= 3) {
+            this.d = connect(0) + this.d;
+            this.d += connect(1);
+        }
+
+        //const relative_pos = [this.nodes.at(-3)[0] - pos[0], this.nodes.at(-3)[1] - pos[1]];
+        //if (this.nodes.length > 3) { // id there are enough nodes, continue a Catmull-Rom spline
+        //    this.d += ` S ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`;
+        //} else if (this.nodes.lengh == 3) { // if there are enough nodes, initialize a Catmull-Rom spline
+        //    this.d = this.d.split("h")[0] + ` C ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`
+        //}
+
+        const last_arc = boring.get_last_arc(this);
+        this.element.setAttributeNS(null, "d", last_arc[0] + this.d + last_arc[1]);
     }
 
     create_last_node(pos) {
@@ -70,21 +129,10 @@ class Stroke {
         if (!new_coord) return;
         pos = new_coord;
     
-        // if (Math.hypot(pos[0] - this.nodes.at(-1)[0], pos[1] - this.nodes.at(-1)[1]) < 3) return;
-
         this.nodes.push(JSON.parse(JSON.stringify(pos)));
         boring.check_min_max_and_grid(this);
        
-        if (this.nodes.length == 2) return;
-
-        const relative_pos = [this.nodes.at(-3)[0] - pos[0], this.nodes.at(-3)[1] - pos[1]];
-        if (this.nodes.length > 3) { // id there are enough nodes, continue a Catmull-Rom spline
-            this.d += ` S ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`;
-        } else if (this.nodes.lengh == 3) { // if there are enough nodes, initialize a Catmull-Rom spline
-            this.d = this.d.split("h")[0] + ` C ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${ this.nodes.at(-1)[0] + relative_pos[0] / 6 }, ${ this.nodes.at(-1)[1] + relative_pos[1] / 6 } ${this.nodes.at(-1)[0]}, ${this.nodes.at(-1)[1]}`
-        }
-
-        this.element.setAttributeNS(null, "d", this.d);
+        this.draw_last_node();
     }
 
     delete () {
@@ -101,6 +149,7 @@ class Stroke {
         current.stroke_count++;
         this.tool = tool;
         this.nodes = nodes;
+        this.wraps = [];
 
         this.min = {x: nodes[0][0] - tool.rad, y: nodes[0][0] - tool.rad};
         this.max = {x: nodes[0][0] + tool.rad, y: nodes[0][0] + tool.rad};
