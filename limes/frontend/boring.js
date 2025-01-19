@@ -3,6 +3,13 @@ const boring = {
         return Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
     },
 
+    interpolate (p1, p2, t) {
+        return [
+            p1[0] + (p2[0] - p1[0]) * t,
+            p1[1] + (p2[1] - p1[1]) * t,
+        ]
+    },
+
     log_response(res) {
         if (res.error) {
             console.log({error: res.error});
@@ -30,21 +37,23 @@ const boring = {
     },
 
     is_point_in_stroke (stroke, point) {
-        if (stroke.nodes.length == 1) return (boring.dist(point, stroke.nodes[0]) < stroke.tool.rad); // as long as the tool always starts with its original width
+        const check_segment = (p1, p2) => {
+            if (point[1] > Math.min(p1[1], p2[1])
+                && point[1] <= Math.max(p1[1], p2[1])
+                && point[0] <= Math.max(p1[0], p2[0])
+                && (p1[0] + (p2[0] - p1[0]) * (point[1] - p1[1]) / (p2[1] - p1[1]) >= point[0] || p1[0] == p2[0])) return -1;
 
-        switch (stroke.tool.type) {
-            case "monoline":
-                let p1 = stroke.nodes[0];
-                for (let i = 1; i < stroke.nodes.length; i++) {
-                    let p2 = stroke.nodes[i];
-                    let dist = Math.abs((p2[1] - p1[1]) * point[0] - (p2[0] - p1[0]) * point[1] + p2[0] * p1[1] - p2[1] * p1[0]) / Math.sqrt((p2[1] - p1[1]) ** 2 + (p2[0] - p1[0]) ** 2);
-                    dist = Math.max(dist, Math.min(boring.dist(p1, point), boring.dist(p2, point)));
-                    p1 = p2;
-                    if (dist < stroke.tool.rad) return true;
-                }
-                return false;
-                break;
+            return 1;
         }
+
+        let inside = -1;
+        inside *= check_segment(...stroke.wraps[0]) * check_segment(...stroke.wraps.at(-1));
+        for (let i = 0; i < stroke.wraps.length - 1; i++) {
+            inside *= check_segment(stroke.wraps[i][0], stroke.wraps[i+1][0]);
+            inside *= check_segment(stroke.wraps[i][1], stroke.wraps[i+1][1]);
+        }
+
+        return inside == 1 ? true : false;
     },
 
     check_min_max_and_grid (stroke) { // adjusts the min, max and grid_cells properties of the given stroke based on its last node
@@ -95,10 +104,15 @@ const boring = {
 
     object_erase () {
         const pos = pointer.active.pos;
+        const prev = pointer.active.prev_pos;
         const close_strokes = boring.get_grid_cell_at(pos);
 
-        for (const stroke of close_strokes) {
-            if (boring.is_point_in_stroke(stroke, pos)) stroke.delete();
+        for (let t = 0; t <= 1; t += constant.minimal_stroke_radius / boring.dist(pos, prev)) {
+            let point = boring.interpolate(pos, prev, t);
+            
+            for (const stroke of close_strokes) {
+                if (boring.is_point_in_stroke(stroke, point)) stroke.delete();
+            }
         }
     },
 

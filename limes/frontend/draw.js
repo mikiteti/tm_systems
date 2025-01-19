@@ -1,5 +1,6 @@
 const constant = {
     grid_columns: 10, // maximal stroke width: 125
+    minimal_stroke_radius: 1,
 };
 const toolbar = {
     tools: [
