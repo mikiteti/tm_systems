@@ -121,6 +121,8 @@ const pointer = {
     pointers: {},
 
     down(e) {
+        if (!pointer.active) return;
+
         down.initialize_globals(e);
 
         switch (current.tool.type) {
@@ -163,7 +165,9 @@ const pointer = {
 
     get pen() { return Object.values(this.pointers).find(p => p.type == "pen") },
 
-    get active() { return this.pen || Object.values(this.pointers)[0] },
+    get mouse() { return Object.values(this.pointers).find(p => p.type == "mouse") },
+ 
+    get active() { return this.pen || this.mouse || (current.draw_with_finger) ? Object.values(this.pointers)[0] : undefined },
 }
 
 const down = {
